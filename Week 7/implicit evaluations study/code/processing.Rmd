@@ -1,0 +1,224 @@
+---
+title: "Evaluations of positive and negative stimuli using the Affective Misattribution Procedure (AMP) and self-reports"
+subtitle: "Data processing"
+author: "Template: Ian Hussey; content: [Student name]"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    code_folding: hide
+    highlight: haddock
+    theme: flatly
+    toc: yes
+    toc_float: yes
+---
+
+```{r, include=FALSE}
+
+knitr::opts_chunk$set(message = FALSE,
+                      warning = FALSE)
+
+```
+
+# Dependencies
+
+```{r}
+
+library(tidyverse)
+library(janitor) # for clean_names()
+library(stringr)
+
+```
+
+# Get data
+
+```{r}
+
+# demographics
+data_demographics_raw <- read_csv("../../implicit evaluations study/data/raw/data_demographics_raw.csv") |>
+  janitor::clean_names()
+
+# data_demographics_raw_messy <- read_csv("../../implicit evaluations study/data/raw/data_demographics_raw_messy.csv", skip = 2) |>
+#   janitor::clean_names()
+
+# self report measure
+data_selfreport_raw <- read_csv("../../implicit evaluations study/data/raw/data_selfreport_raw.csv") |>
+  janitor::clean_names()
+
+# affect attribution procedure
+data_amp_raw <- read_csv("../../implicit evaluations study/data/raw/data_amp_raw.csv") |>
+  janitor::clean_names()
+
+```
+
+# Demographics
+
+```{r}
+
+dat_age_gender <- data_demographics_raw |>
+  select(subject, date, time, trialcode, response) |>
+  pivot_wider(names_from = trialcode,
+              values_from = response) |>
+  mutate(gender = tolower(gender),
+         gender = stringr::str_remove_all(gender, regex("\\W+")), # regex is both very useful and awful to write
+         gender = case_when(gender == "female" ~ gender,
+                            gender == "male" ~ gender,
+                            gender == "nonbinary" ~ gender,
+                            gender == "woman" ~ "female",
+                            gender == "man" ~ "male",
+                            TRUE ~ "other/missing/error"),
+         age = case_when(str_detect(age, "^[0-9]+$") ~ age, # if the value is only numbers, keep it. 
+                         TRUE ~ "other/missing/error")) 
+
+```
+
+# Exclusions / data quality
+
+## AMP
+
+```{r}
+
+data_amp_performance_criteria <- data_amp_raw |> 
+  filter(blockcode != "practice", 
+         trialcode != "instructions") |> 
+  mutate(latency_prob = if_else(latency < 100, TRUE, FALSE)) |> 
+  group_by(subject) |> 
+  summarize(proportion_fast_trials_amp = mean(latency_prob)) |>
+  mutate(exclude_amp_performance = ifelse(proportion_fast_trials_amp > 0.10, "exclude", "include"))
+
+```
+
+# Self-reports
+```{r}
+
+# trial level data
+data_selfreport_trial_level <- data_selfreport_raw |>
+  select(subject, trialcode, response) |>
+  filter(trialcode %in% c("like", "prefer", "positive")) |>
+  rename(item = trialcode) |>
+  filter(response != "Ctrl+'B'") |>
+  mutate(response = as.numeric(response))
+
+# mean scored
+data_selfreport_mean_score <- data_selfreport_trial_level |>
+  group_by(subject) |>
+  summarize(mean_evaluation = mean(response, na.rm = TRUE))
+
+# combined
+data_selfreport_scored <- 
+  full_join(data_selfreport_trial_level |>
+              pivot_wider(names_from = "item",
+                          values_from = "response"),
+            data_selfreport_mean_score,
+            by = "subject")
+
+```
+
+## Exclusions for self report (Assignment 7 Robine)
+Add exclusions for data completeness for the self reports. i.e., master exclude variable should also be set to "exclude" if they don't have responses for the three individual self report item.
+
+```{r}
+data_selfreport_minus_NA <- data_selfreport_scored |>
+  filter(positive != "other/missing/error",
+         prefer != "other/missing/error")
+```
+
+
+# Affect Misattribution Procedure
+
+## Exclusions for AMP (Assignment 7 Robine)
+
+Add exclusions for the AMP task. It should have the "correct" number of trials. How to know what number is the correct number of trials?
+
+```{r}
+data_amp_how_many_trials <- data_amp_raw |>
+  select("subject", "blockcode", "trialcode", "latency") |>
+  filter(blockcode != "practice", 
+         trialcode != "instructions")
+
+data_amp_how_many_trials |>
+  count(subject)
+
+data_amp_minus_max_trial <- data_amp_how_many_trials |>
+  filter(subject != 246532124, 504546409) #error
+
+  
+data_amp_performance_ok <- data_amp_performance_criteria |>
+  filter(exclude_amp_performance != "exclude")
+
+
+data_amp_nur_test <- data_amp_raw |> 
+  filter(blockcode != "practice", 
+         trialcode != "instructions")
+```
+
+
+TODO extract evaluations on the AMP test blocks and convert to an overall bias score
+
+```{r}
+
+
+```
+
+# Combine
+
+```{r}
+
+# combine all dfs created in the previous chunks
+data_processed_temp <- dat_age_gender |>
+  full_join(data_selfreport_scored, by = "subject") |> 
+  full_join(data_amp_performance_criteria, by = "subject")
+
+# flag all subjects with more than one row in the wide-format data. these should be excluded in the analysis.
+# a more elaborate approach would be to track down the individual dupicate cases and determine which of the mulitiple cases should be retained. 
+data_processed_duplicates <- data_processed_temp |>
+  count(subject) |>
+  mutate(exclude_duplicate_data = if_else(n > 1, "exclude", "include")) |>
+  select(-n)
+
+# join in the duplicates df
+data_processed_before_exclusions <- data_processed_temp |>
+  full_join(data_processed_duplicates, by = "subject")
+
+```
+
+# Define master exclusions
+
+```{r}
+
+# create a master exclude_participant variable
+data_processed <- data_processed_before_exclusions |>
+  mutate(exclude_participant = case_when(tolower(age) == "test" ~ "exclude",
+                                         tolower(gender) == "test" ~ "exclude",
+                                         is.na(mean_evaluation) ~ "exclude",
+                                         # in this case we will exclude participants with missing demographics data or outcomes measures data. 
+                                         # Note that "list-wise exclusions" like this aren't always justified, as missingness often isn't at random. 
+                                         # How to treat missing data is a  whole area of work in itself, which we wont cover here.
+                                         is.na(age) ~ "exclude", 
+                                         is.na(gender) ~ "exclude",
+                                         exclude_amp_performance == "exclude" ~ "exclude",
+                                         exclude_duplicate_data == "exclude" ~ "exclude",
+                                         TRUE ~ "include"))
+
+```
+
+# Write to disk
+
+```{r}
+
+# in case this dir doesn't exist, create it
+dir.create("../../../data/AMP study/processed/")
+
+# save data to disk in that dir
+write_csv(data_processed, "../../../data/AMP study/processed/data_processed.csv")
+
+```
+
+# Session info
+
+```{r}
+
+sessionInfo()
+
+```
+
+
