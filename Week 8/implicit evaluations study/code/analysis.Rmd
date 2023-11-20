@@ -152,6 +152,28 @@ TODO add descriptive plots for self-reported evaluations
 
 
 ```{r}
+data_amp_evaluations <- full_join(dat_age_gender, data_amp_score_percentage)
+
+#Assignment 8: AMP score female
+data_amp_score_female <- data_amp_evaluations |>
+  select(subject, gender, amp_score, n, amp_score_percentage) |>
+  filter(gender == "female") |>
+  filter(amp_score == 1) |>
+  mutate(amp_score_percentage = as.numeric(amp_score_percentage)) |>
+  summarise(Mean = mean(amp_score_percentage, na.rm = TRUE))
+
+
+
+
+
+
+
+
+
+  
+80.555556 + 56.944444 + 76.388889 + 51.388889 + 48.611111 + 65.277778 + 54.166667 + 52.777778 + 51.388889 + 54.166667 + 94.444444 + 68.055556 + 51.388889 + 55.555556 + 52.777778 + 48.611111 + 6.944444
+
+ 
 
 ```
 

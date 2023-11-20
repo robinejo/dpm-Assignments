@@ -125,29 +125,6 @@ data_amp_with_amp_score <- data_amp_prime_target |>
 data_amp_score_percentage <- data_amp_with_amp_score |>
   mutate(amp_score_percentage = case_when(amp_score == 1 ~ 100/72*n))
 
-
-
-
-amp_score_2 <- data_amp_with_amp_score %>%
-  group_by(subject) %>%
-  summarize(amp_score = mean(is_congruent, na.rm = TRUE))  # Proportion of TRUE in is_congruent column
-view(amp_score_2)
-
-data_amp_score_in_percentage <- data_amp_with_amp_score |>
-  
-  
-  
-
-
-  
-
-100:72 mal n(amp_score =1)
- 
-  
-
-  
-  
-  
 ```
 
 
