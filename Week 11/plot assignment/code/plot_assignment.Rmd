@@ -55,6 +55,8 @@ Consider making use of the many extensions to ggplot2, e.g.:
 # Data
 ```{r}
 #D&D Syntax
+library(dplyr)
+library(tidyverse)
 library(car)
 library(psych)
 library(Hmisc)
@@ -65,11 +67,14 @@ library(corrplot)
 library(GPArotation)
 library(apaTables)
 library(effectsize)
+library(ggplot2)
 
 
-data_dnd<-read.csv("../data/Lorenz, Hagitte, & Brandt. D&D Data.csv",
+data_dnd<-read.csv2("../data/Lorenz, Hagitte, & Brandt. D&D Data.csv",
                    sep = ";",
                    na.strings = "-77")
+data_dnd <- data_dnd %>%
+  select(sort(names(.)))
 
 #data_dnd$classes_new <- recode(data_dnd$classes,"0=-77")
 
@@ -78,11 +83,30 @@ data_dnd <- data_dnd |>
 
 ```
 
+```{r}
+calculating_mean <- data_dnd |>
+  select(agree_mean, con_mean, extr_mean, neuro_mean, open_mean) 
+  
+overall_mean_agree <- calculating_mean |>
+  dplyr::summarize(mean_agree_mean = mean(agree_mean, na.rm = TRUE))
+  
+```
+
 
 # Good plot
 
 ```{r}
-
+ggplot(data_processed_after_exclusions, aes(x = mean_evaluation)) +
+  geom_histogram(binwidth = 1,
+                 boundary = 0,
+                 fill = viridis_pal(begin = 0.45, option = "mako")(1), 
+                 color = viridis_pal(begin = 0.30, option = "mako")(1)) + 
+  xlab("Mean self-reported evaluation") +
+  ylab("Frequency") +
+  theme_linedraw() +
+  scale_x_continuous(breaks = pretty_breaks(n = 7)) +
+  coord_cartesian(xlim = c(1, 7)) +
+  theme(panel.grid.minor = element_blank())
 
 
 ```
