@@ -96,6 +96,8 @@ data_amp_completeness <- data_amp_raw |>
   mutate(exclude_amp_completeness = ifelse(n == 72, "include", "exclude")) |>
   select(-n)
 
+
+
 # data_amp_completeness |>
 #   count(n)
 
@@ -175,7 +177,7 @@ data_amp_score |>
 
 ```{r}
 
-# combine all dfs created in the previous chunks
+# combine all dfs created in the previous chunks3
 data_processed_temp <- dat_age_gender |>
   full_join(data_selfreport_scored, by = "subject") |> 
   full_join(data_amp_score, by = "subject") |> 
@@ -213,7 +215,6 @@ data_processed <- data_processed_before_exclusions |>
                                          exclude_duplicate_data == "exclude" ~ "exclude",
                                          exclude_amp_completeness == "exclude" ~ "exclude", 
                                          TRUE ~ "include"))
-
 ```
 
 # Write to disk
