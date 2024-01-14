@@ -1,0 +1,362 @@
+---
+title: "Plot assignment"
+author: "Template: Ian Hussey; content: Robine Jordi"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    code_folding: hide
+    highlight: haddock
+    theme: flatly
+    toc: yes
+    toc_float: yes
+---
+
+```{r, include=FALSE}
+
+knitr::opts_chunk$set(message = FALSE,
+                      warning = FALSE)
+
+```
+
+# Dependencies
+
+raincloud plots
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+```
+
+# Instructions
+
+The goal of this exercise is to produce both good and bad examples of plots *and to be explicit about what makes them good or bad*. 
+
+The data can be real or fabricated. The plots can convey realistic or silly messages - but they must convey them clearly. You can get real data from many sources. A good one is the open science framekwork (osf.io). You can also simply make up data, either by hand or using simulation functions (e.g., `rnorm`) or the many simulation packages. If simulating data, ensure that you (a) use set.seed() to make it reproudbile, and (b) save a copy of the final data that you're using to disk and then reload it in the script so that the plot is reproducible.
+
+The goal is neither to reproduce the types of plots that you most often see in journals (bar plots, etc.) nor to use a very fancy looking plot just for the sake of it - if it is very unlikely that you'd ever be able to use the plot to convey a research finding in an article, blog, poster, tweet, infographic or otherwise, it's probably not a good choice either.
+
+The plots must be reproducible. Provide the data as well as the code to reporduce them. The plots should also be saved as individual images (pdf or png).
+
+Under each plot, here in the RMarkdown, briefly explain what types of analysis the plot is suitable for, what elements of the results the plot attempts to clearly convey. For the bad plot, do the opposite: emphasise what features of the results the plot obscures or makes unclear. In doing so, communicate to me that you understand what makes a good plot to convey the results of quantiative analyses to viewers.
+
+Consider making use of the many extensions to ggplot2, e.g.:
+
+- https://r-graph-gallery.com
+- https://krzjoa.github.io/awesome-r-dataviz/#/
+- ggdist https://mjskay.github.io/ggdist/
+- ggrepel
+- ggpubr
+- see
+- ggsignif
+- and others: https://exts.ggplot2.tidyverse.org/gallery/
+
+
+# Data
+```{r}
+#D&D Syntax
+library(dplyr)
+library(tidyverse)
+library(car)
+library(psych)
+library(Hmisc)
+library(readxl)
+library(lavaan)
+library(semTools)
+library(corrplot)
+library(GPArotation)
+library(apaTables)
+library(effectsize)
+library(ggplot2)
+
+library(ggplot2)
+library(ggridges)
+library(ggdist)
+library(dplyr)
+library(ggbeeswarm)
+library(PupillometryR)
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+library(janitor)
+library(scales)
+library(ggExtra)
+library(ggplot2)
+library(ggrepel)
+library(ggmagnify)
+library(ggrain)
+library(ggridges)
+library(cowplot)
+library(gtsummary)
+library(lavaan)
+library(psych)
+
+data_dnd<-read.csv2("../data/Lorenz, Hagitte, & Brandt. D&D Data.csv",
+                   sep = ";",
+                   na.strings = "-77")
+data_dnd <- data_dnd %>%
+  mutate(unique_id = row_number()) %>%
+  select(sort(names(.)))
+
+#data_dnd$classes_new <- recode(data_dnd$classes,"0=-77")
+
+data_dnd <- data_dnd |>
+  mutate(classes_new = ifelse(classes == 0, -77, classes))
+
+```
+
+```{r}
+data_dnd_reversed_scores <- data_dnd |>
+  mutate(a1_reversed = 6 - a1,
+         a3_reversed = 6 - a3,
+         a6_reversed = 6 - a6,
+         a8_reversed = 6 - a8,
+         c2_reversed = 6 - c2,
+         c4_reversed = 6 - c4,
+         c5_reversed = 6 - c5,
+         c9_reversed = 6 - c9,
+         e2_reversed = 6 - e2,
+         e5_reversed = 6 - e5,
+         e7_reversed = 6 - e7,
+         n2_reversed = 6 - n2,
+         n5_reversed = 6 - n5,
+         n7_reversed = 6 - n7,
+         o7_reversed = 6 - o7,
+         o9_reversed = 6 - o9) |>
+  select(-a1, -a1r, -a3, -a3r, -a6, -a6r, -a8, -a8r, -c2, -c2r, -c4, -c4r, -c5, -c5r, -c9, -c9r, -e2, -e2r, -e5, -e5r, -e7, -e7r, -n2, -n2r, -n5, -n5r, -n7, -n7r,  -o7, -o7r, -o9, -o9r)
+```
+
+# Means
+Calculating the correct means and delete the wrong ones. 
+```{r}
+# Calculating means
+data_dnd_means <- data_dnd_reversed_scores %>%
+  mutate(mean_agree_new = rowMeans(select(., a1_reversed, a2, a3_reversed, a4, a5, a6_reversed, a7, a8_reversed, a9), na.rm = TRUE),
+         mean_consc_new = rowMeans(select(., c1, c2_reversed, c3, c4_reversed, c5_reversed, c6, c7, c8, c9_reversed), na.rm = TRUE),
+         mean_extra_new = rowMeans(select(., e1, e2_reversed, e3, e4, e5_reversed, e6, e7_reversed, e8), na.rm = TRUE),
+         mean_neuro_new = rowMeans(select(., n1, n2_reversed, n3, n4, n5_reversed, n6, n7_reversed, n8), na.rm = TRUE),
+         mean_open_new = rowMeans(select(., o1, o2, o3, o4, o5, o6, o7_reversed, o8, o9_reversed, o10), na.rm = TRUE)) 
+
+
+# Delete the wrong calculated means
+data_dnd_reversed_scores_correct_means <- data_dnd_means |>
+  select(-ends_with("mean")) %>%
+  rename(bfi_a1_reversed = a1_reversed,
+         bfi_a2 = a2,
+         bfi_a3_reversed = a3_reversed,
+         bfi_a4 = a4,
+         bfi_a5 = a5,
+         bfi_a6_reversed = a6_reversed,
+         bfi_a7 = a7,
+         bfi_a8_reversed = a8_reversed,
+         bfi_a9 = a9,
+         bfi_c1 = c1,
+         bfi_c2_reversed = c2_reversed,
+         bfi_c3 = c3,
+         bfi_c4_reversed = c4_reversed,
+         bfi_c5_reversed = c5_reversed,
+         bfi_c6 = c6,
+         bfi_c7 = c7,
+         bfi_c8 = c8,
+         bfi_c9_reversed = c9_reversed,
+         bfi_e1 = e1,
+         bfi_e2_reversed = e2_reversed,
+         bfi_e3 = e3,
+         bfi_e4 = e4,
+         bfi_e5_reversed = e5_reversed,
+         bfi_e6 = e6,
+         bfi_e7_reversed = e7_reversed,
+         bfi_n1 = n1,
+         bfi_n2_reversed = n2_reversed,
+         bfi_n3 = n3,
+         bfi_n4 = n4, 
+         bfi_n5_reversed = n5_reversed,
+         bfi_n6 = n6,
+         bfi_n7_reversed = n7_reversed,
+         bfi_n8 = n8,
+         bfi_o1 = o1,
+         bfi_o2 = o2,
+         bfi_o3 = o3,
+         bfi_o4 = o4,
+         bfi_o5 = o5,
+         bfi_o6 = o6,
+         bfi_o7_reversed = o7_reversed,
+         bfi_o8 = o8,
+         bfi_o9_reversed = o9_reversed,
+         bfi_o10 = o10) %>%
+   select(sort(names(.)))
+```
+
+# Exclusions
+For the sake of this assignment I will exclude participants who have number below 1 or above 5 on their BFI-44 scores.
+```{r}
+data_dnd_exclusions <- data_dnd_reversed_scores_correct_means %>%
+  mutate(exclusion_impossible_bfi_scores = ifelse(rowSums(select(., starts_with("bfi_")) > 5 | 
+                                                      select(., starts_with("bfi_")) < 1) , "exclude", "include"))
+
+
+data_dnd_after_exclusions <- data_dnd_exclusions |>
+  filter(exclusion_impossible_bfi_scores != "exclude", na.rm = TRUE)
+```
+
+# DnD Playsers vs non Dnd Players
+```{r}
+data_dnd_after_exclusions_dnd_players <- data_dnd_after_exclusions |>
+  mutate(dnd_player = ifelse(status == 1, "player", "non player"))
+
+```
+
+# Gender
+```{r}
+data_dnd_after_exclusions_dnd_players_gender <- data_dnd_after_exclusions_dnd_players |>
+  mutate(gender = case_when(
+    sex == 1 ~ "male",
+    sex == 2 ~ "female",
+    sex == 3 ~ "nonbinary",
+    sex == 4 ~ "other",
+    TRUE ~ as.character(sex)))
+
+```
+
+
+# Bad Plot
+```{r}
+plot_agreeableness_bad <- ggplot(data_dnd_after_exclusions_dnd_players, aes(x = dnd_player, fill = dnd_player)) +
+  geom_boxplot(aes(y = mean_agree_new), position = position_dodge(width = 0.8), alpha = 0.7) +
+  labs(title = "Comparison of Agreeableness for D&D Players vs. Non D&D Players",
+       x = "Player Type", y = "Mean Value") +
+  scale_fill_manual(values = c("player" = "yellow", "non player" = "yellow")) +
+  theme_minimal() +
+  facet_wrap(~ "Agreeableness", scales = "free_y")
+
+plot_conscientiousness_bad <- ggplot(data_dnd_after_exclusions_dnd_players, aes(x = dnd_player, fill = dnd_player)) +
+  geom_boxplot(aes(y = mean_consc_new), position = position_dodge(width = 0.8), alpha = 0.7) +
+  labs(title = "Comparison of Conscientiousness for D&D Players vs. Non D&D Players",
+       x = "Player Type", y = "Mean Value") +
+  scale_fill_manual(values = c("player" = "yellow", "non player" = "yellow")) +
+  theme_minimal() +
+  facet_wrap(~ "Conscientiousness", scales = "free_y")
+
+plot_extraversion_bad <- ggplot(data_dnd_after_exclusions_dnd_players, aes(x = dnd_player, fill = dnd_player)) +
+  geom_boxplot(aes(y = mean_extra_new), position = position_dodge(width = 0.8), alpha = 0.7) +
+  labs(title = "Comparison of Extraversion for D&D Players vs. Non D&D Players",
+       x = "Player Type", y = "Mean Value") +
+  scale_fill_manual(values = c("player" = "yellow", "non player" = "yellow")) +
+  theme_minimal() +
+  facet_wrap(~ "Extraversion", scales = "free_y")
+
+plot_neuroticism_bad <- ggplot(data_dnd_after_exclusions_dnd_players, aes(x = dnd_player, fill = dnd_player)) +
+  geom_boxplot(aes(y = mean_neuro_new), position = position_dodge(width = 0.8), alpha = 0.7) +
+  labs(title = "Comparison of Neuroticism for D&D Players vs. Non D&D Players",
+       x = "Player Type", y = "Mean Value") +
+  scale_fill_manual(values = c("player" = "yellow", "non player" = "yellow")) +
+  theme_minimal() +
+  facet_wrap(~ "Neuroticism", scales = "free_y")
+
+plot_openness_bad <- ggplot(data_dnd_after_exclusions_dnd_players, aes(x = dnd_player, fill = dnd_player)) +
+  geom_boxplot(aes(y = mean_open_new), position = position_dodge(width = 0.8), alpha = 0.7) +
+  labs(title = "Comparison of Openness for D&D Players vs. Non D&D Players",
+       x = "Player Type", y = "Mean Value") +
+  scale_fill_manual(values = c("player" = "yellow", "non player" = "yellow")) +
+  theme_minimal() +
+  facet_wrap(~ "Openness", scales = "free_y")
+
+# Combine all plots
+combined_plots_bad <- plot_agreeableness_bad + plot_conscientiousness_bad + plot_extraversion_bad + plot_neuroticism_bad + plot_openness_bad
+
+# Arrange the plots
+combined_plots_bad <- combined_plots_bad + plot_layout(guides = "collect")
+
+# Display the combined plots
+combined_plots_bad
+
+
+```
+
+# Good plot
+
+```{r}
+# Good Plot for Agreeableness
+plot_agreeableness <- ggplot(data_dnd_after_exclusions_dnd_players_gender, aes(x = dnd_player, y = mean_agree_new, fill = gender)) +
+  geom_flat_violin(position = position_nudge(x = 0.2), alpha = 0.7) +
+  geom_point(position = position_jitterdodge(jitter.width = 0.2, dodge.width = 0.6), linewidth = 0.5, alpha = 0.7) +
+  geom_boxplot(width = 0.15, alpha = 0.7, outlier.shape = NA) +
+  theme_minimal() +
+  facet_wrap(~ gender) +
+  labs(title = "Agreeableness")
+
+# Good Plot for Conscientiousness
+plot_conscientiousness <- ggplot(data_dnd_after_exclusions_dnd_players_gender, aes(x = dnd_player, y = mean_consc_new, fill = gender)) +
+  geom_flat_violin(position = position_nudge(x = 0.2), alpha = 0.7) +
+  geom_point(position = position_jitterdodge(jitter.width = 0.2, dodge.width = 0.6), linewidth = 0.5, alpha = 0.7) +
+  geom_boxplot(width = 0.15, alpha = 0.7, outlier.shape = NA) +
+  theme_minimal() +
+  facet_wrap(~ gender) +
+  labs(title = "Conscientiousness")
+
+# Good Plot for Extraversion
+plot_extraversion <- ggplot(data_dnd_after_exclusions_dnd_players_gender , aes(x = dnd_player, y = mean_extra_new, fill = gender)) +
+  geom_flat_violin(position = position_nudge(x = 0.2), alpha = 0.7) +
+  geom_point(position = position_jitterdodge(jitter.width = 0.2, dodge.width = 0.6), linewidth = 0.5, alpha = 0.7) +
+  geom_boxplot(width = 0.15, alpha = 0.7, outlier.shape = NA) +
+  theme_minimal() +
+  facet_wrap(~ gender) +
+  labs(title = "Extraversion")
+
+# Good Plot for Neuroticism
+plot_neuroticism <- ggplot(data_dnd_after_exclusions_dnd_players_gender , aes(x = dnd_player, y = mean_neuro_new, fill = gender)) +
+  geom_flat_violin(position = position_nudge(x = 0.2), alpha = 0.7) +
+  geom_point(position = position_jitterdodge(jitter.width = 0.2, dodge.width = 0.6), linewidth = 0.5, alpha = 0.7) +
+  geom_boxplot(width = 0.15, alpha = 0.7, outlier.shape = NA) +
+  theme_minimal() +
+  facet_wrap(~ gender) +
+  labs(title = "Neuroticism")
+
+# Good Plot forOpenness
+plot_openness <- ggplot(data_dnd_after_exclusions_dnd_players_gender , aes(x = dnd_player, y = mean_open_new, fill = gender)) +
+  geom_flat_violin(position = position_nudge(x = 0.2), alpha = 0.7) +
+  geom_point(position = position_jitterdodge(jitter.width = 0.2, dodge.width = 0.6), linewidth = 0.5, alpha = 0.7) +
+  geom_boxplot(width = 0.15, alpha = 0.7, outlier.shape = NA) +
+  theme_minimal() +
+  facet_wrap(~ gender) +
+  labs(title = "Openness")
+
+# Combine all plots
+combined_plots_good <- plot_agreeableness + plot_conscientiousness + plot_extraversion + plot_neuroticism + plot_openness
+
+# Arrange the plots
+combined_plots_good <- combined_plots_good + plot_layout(guides = "collect")
+
+# Display the combined plots
+combined_plots_good
+```
+
+# Write to disk
+Write to disk as a .pdf or .png.
+
+Name them "plot_good_[yourname]" and "plot_bad_[yourname]".
+
+```{r}
+# Save the plot as a PDF
+ggsave("plot_good_robine.pdf", combined_plots_good, width = 20, height = 10)
+
+# Save the plot as a PNG
+ggsave("../code/plot_good_robine.png", combined_plots_good, width = 20, height = 10, dpi = 300)
+
+# 
+ggsave("plot_bad_robine.pdf", combined_plots_bad, width = 20, height = 10)
+
+ggsave("../code/plot_bad_robine.png", combined_plots_bad, width = 20, height = 10, dpi = 300)
+
+
+```
+
+# Session info
+
+```{r}
+
+sessionInfo()
+
+```
+
+
