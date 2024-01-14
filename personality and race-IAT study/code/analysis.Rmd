@@ -1,0 +1,973 @@
+---
+title: "Evaluations of positive and negative stimuli using the Affective Misattribution Procedure (AMP) and self-reports"
+subtitle: "Analysis"
+author: "Template: Ian Hussey; content: Robine Jordi"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    code_folding: hide
+    highlight: haddock
+    theme: flatly
+    toc: yes
+    toc_float: yes
+---
+
+```{r, include=FALSE}
+
+# set knit options
+knitr::opts_chunk$set(message = FALSE,
+                      warning = FALSE)
+
+# disable scientific notation
+options(scipen = 999) 
+
+```
+
+# Dependencies
+
+```{r}
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+library(janitor)
+library(scales)
+library(psych)
+library(ggplot2)
+library(easystats)
+library(wesanderson)
+library(patchwork)
+library(cowplot)
+```
+
+# Data
+
+Load the processed data and apply the global exclusions.
+
+```{r}
+data_processed <- read_csv("../data/processed/data_processed_robine.csv")
+```
+
+# Session info
+
+```{r}
+
+sessionInfo()
+
+```
+
+# Sample desciptives
+
+## Sample size before master exclusion
+
+```{r}
+data_processed |>
+  count(name = "n") |>
+  kable() |>
+  add_header_above(header = c("Whole sample" = 1)) |> 
+  kable_classic(full_width = FALSE)
+```
+
+## Exclude participants
+Those participants who are set to "exclude" in the master exclusion variable will be cut out/excluded in the following code.
+
+```{r}
+data_processed_after_exclusions <- data_processed |>
+  filter(master_exclusion != "exclude")
+```
+
+## Sample size after master exlusion
+
+```{r}
+data_processed_after_exclusions |>
+  count(name = "n") |>
+  kable() |>
+  add_header_above(header = c("Whole sample" = 1)) |> 
+  kable_classic(full_width = FALSE)
+```
+
+After excluding participants who didn't match the include criteria, there are 161 out of 179 participants left. This means 18 participants have been filtered out of the data set I am going to work with from now on to create plots and do statistics with. 
+
+# Age
+In the following I will provide a table which gives an overview of the mean and the SD of the Age of the included participants from the personality and race IAT-study.
+
+```{r}
+data_processed_after_exclusions |>
+  mutate(age = as.numeric(age)) |>
+  summarise(Mean = mean(age, na.rm = TRUE),
+            SD = sd(age, na.rm = TRUE)) |>
+  mutate_all(.funs = janitor::round_half_up, digits = 1) |>
+  kable() |>
+  add_header_above(header = c("Age" = 2)) |>
+  kable_classic(full_width = FALSE)
+```
+
+# Gender
+In the following I will create an overview of the frequence & percentage of men and women in the sample size. 
+
+```{r}
+data_processed_after_exclusions |> 
+  rename(Gender = gender) |>
+  group_by(Gender) |> 
+  summarise(n = n()) |> 
+  mutate(Percent = paste0(round_half_up((n / sum(n)) * 100, 1), "%")) |>
+  mutate(Gender = stringr::str_to_sentence(Gender)) |> 
+  kable() |>
+  kable_classic(full_width = FALSE)
+```
+
+To check my numbers I can add the total number (n) of female, male and not indicated: 86 + 53 + 22 = 161. This number should match the number above (total participants after exclusions) which it does.
+
+# Descriptive Statistics
+
+## Cronbach's alpha of the BFI
+
+I will provide a Cronbach's alpha for each of the five BFI subscales.
+
+*1. Agreeableness*
+```{r}
+data_processed_after_exclusions_bfi_a <- data_processed_after_exclusions |>
+  select(starts_with("bfi_a"))
+
+cronbachs_alpha_bfi_a <- psych::alpha(data_processed_after_exclusions_bfi_a)
+
+print(cronbachs_alpha_bfi_a)
+```
+
+*2. Conscientiousness*
+```{r}
+data_processed_after_exclusions_bfi_c <- data_processed_after_exclusions |>
+  select(starts_with("bfi_c"))
+
+cronbachs_alpha_bfi_c <- psych::alpha(data_processed_after_exclusions_bfi_c)
+
+print(cronbachs_alpha_bfi_c)
+```
+
+*3. Extraversion*
+```{r}
+data_processed_after_exclusions_bfi_e <- data_processed_after_exclusions |>
+  select(starts_with("bfi_e"))
+
+cronbachs_alpha_bfi_e <- psych::alpha(data_processed_after_exclusions_bfi_e)
+
+print(cronbachs_alpha_bfi_e)
+```
+
+*4. Neuroticism*
+```{r}
+data_processed_after_exclusions_bfi_n <- data_processed_after_exclusions |>
+  select(starts_with("bfi_n"))
+
+cronbachs_alpha_bfi_n <- psych::alpha(data_processed_after_exclusions_bfi_n)
+
+print(cronbachs_alpha_bfi_n)
+```
+
+*5. Openness*
+```{r}
+data_processed_after_exclusions_bfi_o <- data_processed_after_exclusions |>
+  select(starts_with("bfi_o"))
+
+cronbachs_alpha_bfi_o <- psych::alpha(data_processed_after_exclusions_bfi_o)
+
+print(cronbachs_alpha_bfi_o)
+```
+# Histograms 
+
+## 1. Agreeableness
+
+*1.1 mean_bfi_a*
+```{r}
+fill_color_agree <- "#1f78b4"
+
+ggplot(data_processed_after_exclusions, aes(x = mean_bfi_a)) +
+  geom_histogram(binwidth = 0.2,  
+                 boundary = 1,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("Mean BFI_A Score") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 10))
+```
+
+*1.2 bfi_a1 - bfi_a9*
+```{r}
+fill_color_agree <- "#1f78b4"
+
+#----
+
+plot_a1 <- ggplot(data_processed_after_exclusions, aes(x = bfi_a1_reversed)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI a1 reversed") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_a2 <- ggplot(data_processed_after_exclusions, aes(x = bfi_a2)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI a2") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_a3 <- ggplot(data_processed_after_exclusions, aes(x = bfi_a3_reversed)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI a3 reversed") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_a4 <- ggplot(data_processed_after_exclusions, aes(x = bfi_a4)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI a4") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_a5 <- ggplot(data_processed_after_exclusions, aes(x = bfi_a5)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI a5") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_a6 <- ggplot(data_processed_after_exclusions, aes(x = bfi_a6_reversed)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI a6 reversed") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_a7 <- ggplot(data_processed_after_exclusions, aes(x = bfi_a7)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI a7") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_a8 <- ggplot(data_processed_after_exclusions, aes(x = bfi_a8_reversed)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI a8 reversed") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_a9 <- ggplot(data_processed_after_exclusions, aes(x = bfi_a9)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI a9") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+
+plot_grid(plot_a1, plot_a2, plot_a3, plot_a4, plot_a5, plot_a6, plot_a7, plot_a8, plot_a9, labels = , nrow = 3)
+```
+
+## 2. Cosnscientiousness
+
+*2.1 mean_bfi_c*
+```{r}
+fill_color_consc <- "#33a02c"
+
+ggplot(data_processed_after_exclusions, aes(x = mean_bfi_c)) +
+  geom_histogram(binwidth = 0.2,  
+                 boundary = 1,   
+                 fill = fill_color_consc, 
+                 color = "black") +  
+  xlab("Mean BFI_C Score") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 10))
+```
+
+*2.2 bfi_c1 - bfi_c9*
+```{r}
+fill_color_agree <- "#33a02c"
+
+#----
+
+plot_c1 <- ggplot(data_processed_after_exclusions, aes(x = bfi_c1)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI c1") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_c2 <- ggplot(data_processed_after_exclusions, aes(x = bfi_c2_reversed)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI c2 reversed") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_c3 <- ggplot(data_processed_after_exclusions, aes(x = bfi_c3)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI c3") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_c4 <- ggplot(data_processed_after_exclusions, aes(x = bfi_c4_reversed)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI c4 reversed") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_c5 <- ggplot(data_processed_after_exclusions, aes(x = bfi_c5_reversed)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI c5 reversed") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_c6 <- ggplot(data_processed_after_exclusions, aes(x = bfi_c6)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI c6") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_c7 <- ggplot(data_processed_after_exclusions, aes(x = bfi_c7)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI c7") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_c8 <- ggplot(data_processed_after_exclusions, aes(x = bfi_c8)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI c8") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_c9 <- ggplot(data_processed_after_exclusions, aes(x = bfi_c9_reversed)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI c9 reversed") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_grid(plot_c1, plot_c2, plot_c3, plot_c4, plot_c5, plot_c6, plot_c7, plot_c8, plot_c9, labels = , nrow = 3)
+```
+
+## 3. Extraverstion
+
+*3.1 mean_bfi_e*
+```{r}
+fill_color_extra <- "#e31a1c"
+
+ggplot(data_processed_after_exclusions, aes(x = mean_bfi_e)) +
+  geom_histogram(binwidth = 0.2,  
+                 boundary = 1,   
+                 fill = fill_color_extra, 
+                 color = "black") +  
+  xlab("Mean BFI_E Score") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 10))
+```
+
+*3.2 bfi_e1 - bfi_e8*
+```{r}
+fill_color_agree <- "#e31a1c"
+
+#----
+
+plot_e1 <- ggplot(data_processed_after_exclusions, aes(x = bfi_e1)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI e1") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_e2 <- ggplot(data_processed_after_exclusions, aes(x = bfi_e2_reversed)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI e2 reversed") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_e3 <- ggplot(data_processed_after_exclusions, aes(x = bfi_e3)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI e3") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_e4 <- ggplot(data_processed_after_exclusions, aes(x = bfi_e4)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI e4") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_e5 <- ggplot(data_processed_after_exclusions, aes(x = bfi_e5_reversed)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI e5 reversed") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_e6 <- ggplot(data_processed_after_exclusions, aes(x = bfi_e6)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI e6") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_e7 <- ggplot(data_processed_after_exclusions, aes(x = bfi_e7_reversed)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI e7 reversed") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_e8 <- ggplot(data_processed_after_exclusions, aes(x = bfi_e8)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI e8") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+
+plot_grid(plot_e1, plot_e2, plot_e3, plot_e4, plot_e5, plot_e6, plot_e7, plot_e8, labels = , nrow = 3)
+```
+
+## 4. Neuroticism
+
+*4.1 mean_bfi_n*
+```{r}
+fill_color_neuro <- "#ff7f00"
+
+ggplot(data_processed_after_exclusions, aes(x = mean_bfi_n)) +
+  geom_histogram(binwidth = 0.2,  
+                 boundary = 1,   
+                 fill = fill_color_neuro, 
+                 color = "black") +  
+  xlab("Mean BFI_N Score") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 10))
+```
+
+*4.2 bfi_n1 - bfi_n8*
+```{r}
+fill_color_agree <- "#ff7f00"
+
+#----
+plot_n1 <- ggplot(data_processed_after_exclusions, aes(x = bfi_n1)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI n1") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_n2 <- ggplot(data_processed_after_exclusions, aes(x = bfi_n2_reversed)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI n2 reversed") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_n3 <- ggplot(data_processed_after_exclusions, aes(x = bfi_n3)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI n3") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_n4 <- ggplot(data_processed_after_exclusions, aes(x = bfi_n4)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI n4") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_n5 <- ggplot(data_processed_after_exclusions, aes(x = bfi_n5_reversed)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI n5 reversed") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_n6 <- ggplot(data_processed_after_exclusions, aes(x = bfi_n6)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI n6") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_n7 <- ggplot(data_processed_after_exclusions, aes(x = bfi_n7_reversed)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI n7 reversed") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_n8 <- ggplot(data_processed_after_exclusions, aes(x = bfi_n8)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI n8") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_grid(plot_n1, plot_n2, plot_n3, plot_n4, plot_n5, plot_n6, plot_n7, plot_n8, labels = , nrow = 3)
+```
+
+## 5. Openness
+
+*5.1 mean_bfi_o*
+```{r}
+fill_color_open <- "#6a3d9a"
+
+ggplot(data_processed_after_exclusions, aes(x = mean_bfi_o)) +
+  geom_histogram(binwidth = 0.2,  
+                 boundary = 1,   
+                 fill = fill_color_open, 
+                 color = "black") +  
+  xlab("Mean BFI_O Score") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 10))
+```
+
+*5.2 bfi_o1 - bfi_o10*
+```{r}
+fill_color_agree <- "#6a3d9a"
+
+#----
+plot_o1 <- ggplot(data_processed_after_exclusions, aes(x = bfi_o1)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI o1") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_o2 <- ggplot(data_processed_after_exclusions, aes(x = bfi_o2)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI o2") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_o3 <- ggplot(data_processed_after_exclusions, aes(x = bfi_o3)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI o3") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_o4 <- ggplot(data_processed_after_exclusions, aes(x = bfi_o4)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI o4") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_o5 <- ggplot(data_processed_after_exclusions, aes(x = bfi_o5)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI o5") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_o6 <- ggplot(data_processed_after_exclusions, aes(x = bfi_o6)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI o6") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_o7 <- ggplot(data_processed_after_exclusions, aes(x = bfi_o7_reversed)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI o7 reversed") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_o8 <- ggplot(data_processed_after_exclusions, aes(x = bfi_o8)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI o8") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_o9 <- ggplot(data_processed_after_exclusions, aes(x = bfi_o9_reversed)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI o9 reversed") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_o10 <- ggplot(data_processed_after_exclusions, aes(x = bfi_o10)) +
+  geom_histogram(binwidth = 1,  
+                 boundary = 0,    
+                 fill = fill_color_agree, 
+                 color = "black") +  
+  xlab("BFI o10") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 6))
+
+plot_grid(plot_o1, plot_o2, plot_o3, plot_o4, plot_o5, plot_o6, plot_o7, plot_o8, plot_o9, plot_o10, labels = , nrow = 4)
+```
+
+
+## 6. IAT score
+```{r}
+fill_color_iat <- "#FFC0CB"
+  
+ggplot(data_processed_after_exclusions, aes(x = iat_greenwald_d_score)) +
+  geom_histogram(binwidth = 0.1,  
+                 boundary = -1,   
+                 fill = fill_color_iat, 
+                 color = "black") +  
+  xlab("IAT Greenwald D Score") +
+  ylab("Frequency") +
+  theme_minimal() +
+  scale_x_continuous(breaks = pretty_breaks(n = 10))
+```
+
+# Pearsons Correlation
+```{r}
+# Providing a new dataframe only with means for the correlations table
+df_data_processed_after_exclusions_correlation_table <- data_processed_after_exclusions |>
+  select(mean_bfi_a, mean_bfi_c, mean_bfi_e, mean_bfi_n, mean_bfi_o, iat_greenwald_d_score)
+
+# Calculating pearsons correlation
+correlation_matrix <- cor(df_data_processed_after_exclusions_correlation_table , use = "pairwise.complete.obs")
+
+# Round the correlation coefficients to two decimal places
+correlation_matrix <- round(correlation_matrix, 2)
+
+# Print the correlation matrix
+print(correlation_matrix)
+```
+
+# T-Test
+```{r}
+dat_iat_gender <- data_processed_after_exclusions |> 
+  select(iat_greenwald_d_score, gender) |> 
+  filter(gender != "not indicated")
+
+ttest_iat_gender <- t.test(iat_greenwald_d_score ~ gender, data = dat_iat_gender)
+
+print(ttest_iat_gender)
+
+report(ttest_iat_gender)
+```
+
+The p value is above 0.05 which means the group differences are not significant. The hypotheses that men and women differ on their iat scores can't be supported.
+
+# Regression analysis
+
+## 1. Agreeableness -> IAT Greenwald D score
+```{r}
+regression_model_agree <- lm(iat_greenwald_d_score ~ mean_bfi_a, data = data_processed_after_exclusions)
+
+summary(regression_model_agree)
+
+report(regression_model_agree)
+```
+
+## 2. Cosnscientiousnes -> IAT Greenwald D score
+```{r}
+regression_model_consc <- lm(iat_greenwald_d_score ~ mean_bfi_c, data = data_processed_after_exclusions)
+
+summary(regression_model_consc)
+
+report(regression_model_consc)
+```
+
+## 3. Extraversion -> IAT Greenwald D score
+```{r}
+regression_model_extra <- lm(iat_greenwald_d_score ~ mean_bfi_e, data = data_processed_after_exclusions)
+
+summary(regression_model_extra)
+
+report(regression_model_extra)
+```
+
+## 4. Neuroticism -> IAT Greenwald D score
+```{r}
+regression_model_neuro <- lm(iat_greenwald_d_score ~ mean_bfi_n, data = data_processed_after_exclusions)
+
+summary(regression_model_neuro)
+
+report(regression_model_neuro)
+```
+
+## 5. Openness -> IAT Greenwald D score
+```{r}
+regression_model_open <- lm(iat_greenwald_d_score ~ mean_bfi_o, data = data_processed_after_exclusions)
+
+summary(regression_model_open)
+
+report(regression_model_open)
+```
+
+# Scatter Plots
+
+```{r}
+df_plot <- data_processed_after_exclusions %>%
+  select(mean_bfi_a, mean_bfi_c, mean_bfi_e, mean_bfi_n, mean_bfi_o, iat_greenwald_d_score)
+
+quantiles <- quantile(df_plot$iat_greenwald_d_score, probs = c(0.1, 0.9))
+df_plot$highlight <- ifelse(df_plot$iat_greenwald_d_score < quantiles[1] | df_plot$iat_greenwald_d_score > quantiles[2], "Triangle", "Circle")
+```
+
+
+## 1. Scatter Plot Regression Agreeableness 
+```{r}
+scatter_plot_agree <- ggplot(df_plot, aes(x = mean_bfi_a, y = iat_greenwald_d_score, shape = highlight)) +
+  geom_point() +  
+  stat_smooth(data = subset(df_plot, highlight == "Circle"), method = "lm", se = TRUE, color = "#1f78b4", level = 0.95) +
+  labs(title = "Regression Agreeableness ",
+       x = "Mean BFI Agreeableness",
+       y = "IAT D Score")
+
+print(scatter_plot_agree)
+```
+
+## 2. Scatter Plot Regression Conscientiousness
+```{r}
+scatter_plot_consc <- ggplot(df_plot, aes(x = mean_bfi_c, y = iat_greenwald_d_score, shape = highlight)) +
+  geom_point() +  
+  stat_smooth(data = subset(df_plot, highlight == "Circle"), method = "lm", se = TRUE, color = "#33a02c", level = 0.95) +
+  labs(title = "Regression Conscientiousness",
+       x = "Mean BFI Conscientiousness",
+       y = "IAT D Score")
+
+print(scatter_plot_consc)
+```
+
+## 3. Scatter Plot Regression Extraversion
+```{r}
+scatter_plot_extra <- ggplot(df_plot, aes(x = mean_bfi_e, y = iat_greenwald_d_score, shape = highlight)) +
+  geom_point() +  
+  stat_smooth(data = subset(df_plot, highlight == "Circle"), method = "lm", se = TRUE, color = "#e31a1c", level = 0.95) +
+  labs(title = "Regression Extraversion",
+       x = "Mean BFI Extraversion",
+       y = "IAT D Score")
+
+print(scatter_plot_extra)
+```
+
+## 4. Scatter Plot Regression Neuroticism
+```{r}
+scatter_plot_neuro <- ggplot(df_plot, aes(x = mean_bfi_n, y = iat_greenwald_d_score, shape = highlight)) +
+  geom_point() +  
+  stat_smooth(data = subset(df_plot, highlight == "Circle"), method = "lm", se = TRUE, color = "#ff7f00", level = 0.95) +
+  labs(title = "Regression Neuroticism",
+       x = "Mean BFI Neuroticism",
+       y = "IAT D Score")
+
+print(scatter_plot_neuro)
+```
+
+## 5. Sctatter Plot Regression Openness
+```{r}
+scatter_plot_open <- ggplot(df_plot, aes(x = mean_bfi_o, y = iat_greenwald_d_score, shape = highlight)) +
+  geom_point() +  
+  stat_smooth(data = subset(df_plot, highlight == "Circle"), method = "lm", se = TRUE, color = "#6a3d9a", level = 0.95) +
+  labs(title = "Regression Openness",
+       x = "Mean BFI Openness",
+       y = "IAT D Score")
+  
+print(scatter_plot_open)
+```
+
+## Combined Plot Nr. 1
+```{r}
+# Erstellen Sie einen Datensatz nur mit den benötigten Variablen
+df_plot <- data_processed_after_exclusions %>%
+  select(mean_bfi_a, mean_bfi_c, mean_bfi_e, mean_bfi_n, mean_bfi_o, iat_greenwald_d_score)
+
+# Identifizieren Sie die höchsten und niedrigsten 10% der IAT Greenwald D-Scores
+quantiles <- quantile(df_plot$iat_greenwald_d_score, probs = c(0.1, 0.9))
+df_plot$highlight <- ifelse(df_plot$iat_greenwald_d_score < quantiles[1] | df_plot$iat_greenwald_d_score > quantiles[2], "Triangle", "Circle")
+
+# Plot erstellen
+scatterplot <- ggplot(df_plot, aes(x = mean_bfi_a, y = iat_greenwald_d_score, color = "Agreeableness", shape = highlight)) +
+  geom_point() +
+  labs(title = "Scatterplot der Subskalen und IAT Greenwald D",
+       x = "BFI Subscales",
+       y = "IAT Greenwald D") +
+  theme_minimal()
+
+# Fügen Sie die anderen Subskalen hinzu
+scatterplot <- scatterplot +
+  geom_point(aes(x = mean_bfi_c, color = "Conscientiousness", shape = highlight)) +
+  geom_point(aes(x = mean_bfi_e, color = "Extraversion", shape = highlight)) +
+  geom_point(aes(x = mean_bfi_n, color = "Neuroticism", shape = highlight)) +
+  geom_point(aes(x = mean_bfi_o, color = "Openness", shape = highlight))
+
+# Fügen Sie die Regressionslinien für die Kreise hinzu
+scatterplot <- scatterplot +
+  geom_smooth(data = subset(df_plot, highlight == "Circle"), aes(x = mean_bfi_a, y = iat_greenwald_d_score), method = "lm", se = FALSE, color = "#1f78b4", size = 0.8) +
+  geom_smooth(data = subset(df_plot, highlight == "Circle"), aes(x = mean_bfi_c, y = iat_greenwald_d_score), method = "lm", se = FALSE, color = "#33a02c", size = 0.8) +
+  geom_smooth(data = subset(df_plot, highlight == "Circle"), aes(x = mean_bfi_e, y = iat_greenwald_d_score), method = "lm", se = FALSE, color = "#e31a1c", size = 0.8) +
+  geom_smooth(data = subset(df_plot, highlight == "Circle"), aes(x = mean_bfi_n, y = iat_greenwald_d_score), method = "lm", se = FALSE, color = "#ff7f00", size = 0.8) +
+  geom_smooth(data = subset(df_plot, highlight == "Circle"), aes(x = mean_bfi_o, y = iat_greenwald_d_score), method = "lm", se = FALSE, color = "#6a3d9a", size = 0.8)
+
+# Legende anzeigen
+combined_plot_1 <- scatterplot +
+  scale_color_manual(values = c(Agreeableness = "#1f78b4", Conscientiousness = "#33a02c", Extraversion = "#e31a1c", Neuroticism = "#ff7f00", Openness = "#6a3d9a"),
+                     name = "BFI Subscales") +
+  scale_shape_manual(values = c(Circle = 16, Triangle = 17), name = "Highlight")
+
+# Den Plot anzeigen oder speichern
+print(combined_plot_1)
+```
+
+## Combined Plots Nr. 2
+```{r}
+combined_plot_2 <- plot_grid(scatter_plot_agree, scatter_plot_consc, scatter_plot_extra, scatter_plot_neuro, scatter_plot_open, labels = , nrow = 3)
+
+print(combined_plot_2)
+```
+
+
+```{r}
+# Save the plot as a PDF
+ggsave("combined_plot_1.pdf", combined_plot_1, width = 20, height = 10)
+ggsave("combined_plot_2.pdf", combined_plot_2, width = 20, height = 10)
+
+
+# Save the plot as a PNG
+ggsave("../communications/combined_plot_1.png", combined_plot_1, width = 20, height = 10, dpi = 300)
+ggsave("../communications/combined_plot_2.png", combined_plot_2, width = 20, height = 10, dpi = 300)
+```
+

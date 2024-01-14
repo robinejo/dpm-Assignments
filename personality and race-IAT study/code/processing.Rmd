@@ -1,0 +1,367 @@
+---
+title: "Evaluations of positive and negative stimuli using the Affective Misattribution Procedure (AMP) and self-reports"
+subtitle: "Data processing"
+author: "Template: Ian Hussey; content: Robine Jordi"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    code_folding: hide
+    highlight: haddock
+    theme: flatly
+    toc: yes
+    toc_float: yes
+---
+
+```{r, include=FALSE}
+
+knitr::opts_chunk$set(message = FALSE,
+                      warning = FALSE)
+
+```
+
+# Library
+Load packages needed for the exercises
+```{r}
+library(tidyverse)
+library(dplyr)
+library(psych)
+library(openxlsx)
+```
+
+# Data
+Get Data
+```{r}
+data_processed <- read_csv("../data/processed/data_processed_bfi.csv") |>
+  janitor::clean_names()
+
+data_raw_bfi <- read_csv("../data/raw/data_raw_bfi.csv") |>
+  janitor::clean_names()
+
+data_raw_demographics <- read_csv("../data/raw/data_raw_demographics.csv") |>
+  janitor::clean_names()
+
+data_raw_iat <- read_csv("../data/raw/data_raw_iat.csv") |>
+  janitor::clean_names()
+  
+```
+
+# Demographics
+First: Transform the data from long into wide format.
+Second: Change "sex" to "gender" and rename "f" and "m" to "female and "male".
+
+```{r}
+data_raw_demographics_wide <- data_raw_demographics |>
+  pivot_wider(names_from = variable,
+              values_from = response) |>
+  mutate(gender = sex,
+         gender = case_when(gender == "f" ~ "female",
+                            gender == "m" ~ "male",
+                            TRUE ~ "not indicated"),
+         age = as.character(age),
+         unique_id = as.character(unique_id)) |>
+  select(-sex)
+```
+
+## Gender
+
+```{r}
+data_raw_demographics_gender <- data_raw_demographics_wide |>
+  select(unique_id, gender)
+```
+
+## Age 
+
+```{r}
+data_raw_demographics_age <- data_raw_demographics_wide |>
+  select(unique_id, age)
+```
+
+# BFI
+
+## Reverse Items BFI
+In the following I am going to reverse the bfi items which are worded negatively.
+```{r}
+data_processed_reversed_scores <- data_raw_bfi |>
+  mutate(bfi_a1_reversed = 7 - bfi_a1,
+         bfi_a3_reversed = 7 - bfi_a3,
+         bfi_a6_reversed = 7 - bfi_a6,
+         bfi_a8_reversed = 7 - bfi_a8,
+         bfi_c2_reversed = 7 - bfi_c2,
+         bfi_c4_reversed = 7 - bfi_c4,
+         bfi_c5_reversed = 7 - bfi_c5,
+         bfi_c9_reversed = 7 - bfi_c9,
+         bfi_e2_reversed = 7 - bfi_e2,
+         bfi_e5_reversed = 7 - bfi_e5,
+         bfi_e7_reversed = 7 - bfi_e7,
+         bfi_n2_reversed = 7 - bfi_n2,
+         bfi_n5_reversed = 7 - bfi_n5,
+         bfi_n7_reversed = 7 - bfi_n7,
+         bfi_o7_reversed = 7 - bfi_o7,
+         bfi_o9_reversed = 7 - bfi_o9) |>
+  select(-bfi_a1, -bfi_a3, -bfi_a6, -bfi_a8, -bfi_c2, -bfi_c4, -bfi_c5, -bfi_c9, -bfi_e2, -bfi_e5, -bfi_e7, -bfi_n2, - bfi_n5, -bfi_n7, -bfi_o7, -bfi_o9)
+```
+
+## Sanity check BFI after items beeing reversed 
+By creating a correlation table for each subscale of the big 5 (e.g. agreeableness, conscientiousness, extraversion, neuroticism, openness) I am going to check if the correlations are positive. Each item of such a subscale should be measuring the same construct which means they should correlate positively.
+
+*1. Agreeableness*
+```{r}
+agree <- data_processed_reversed_scores |>
+  select(bfi_a1_reversed,
+         bfi_a2,
+         bfi_a3_reversed,
+         bfi_a4,
+         bfi_a5,
+         bfi_a6_reversed,
+         bfi_a7,
+         bfi_a8_reversed,
+         bfi_a9) 
+
+cor(agree, use = "complete.obs")
+```
+All agreeableness correlations are positive
+
+*2. Conscientiousness*
+```{r}
+cons <- data_processed_reversed_scores |>
+  select(bfi_c1,
+         bfi_c2_reversed,
+         bfi_c3,
+         bfi_c4_reversed,
+         bfi_c5_reversed,
+         bfi_c6,
+         bfi_c7,
+         bfi_c8,
+         bfi_c9_reversed)
+
+cor(cons, use = "complete.obs")
+```
+All conscientiousness correlations are positive.
+
+*3. Extraversion*
+```{r}
+extra <- data_processed_reversed_scores |>
+  select(bfi_e1,
+         bfi_e2_reversed,
+         bfi_e3,
+         bfi_e4,
+         bfi_e5_reversed,
+         bfi_e6,
+         bfi_e7_reversed,
+         bfi_e8)
+
+cor(extra, use = "complete.obs")
+```
+All extraversion correlations are positive
+
+*4. Neuroticism*
+```{r}
+neuro <- data_processed_reversed_scores |>
+  select(bfi_n1,
+         bfi_n2_reversed,
+         bfi_n3,
+         bfi_n4,
+         bfi_n5_reversed,
+         bfi_n6,
+         bfi_n7_reversed,
+         bfi_n8) |>
+  mutate(across(everything(), as.numeric))
+
+
+
+cor(neuro, use = "complete.obs")
+```
+All neuroticism correlations are positive.
+
+*5. Openness*
+```{r}
+open <- data_processed_reversed_scores |>
+  select(bfi_o1,
+         bfi_o2,
+         bfi_o3,
+         bfi_o4,
+         bfi_o5,
+         bfi_o6,
+         bfi_o7_reversed,
+         bfi_o8,
+         bfi_o9_reversed,
+         bfi_o10)
+
+cor(open, use = "complete.obs")
+```
+bfi_o7_reversed x bfi_o10 is the only negative correlation from openness.
+
+## Exclusions BFI
+```{r}
+data_processed_bfi_identifying_exclusions <- data_processed_reversed_scores %>%
+  mutate(exclusions_impossible_scores_bfi = 
+           ifelse(rowSums(select(., -unique_id) < 1 | select(., -unique_id) > 6, na.rm = TRUE) > 0, "exclude", "include")) |> 
+  rowwise() |>
+  mutate(exclusions_incomplete_bfi_a =
+           ifelse(all(is.na(c_across(starts_with("bfi_a")))) | all(!is.na(c_across(starts_with("bfi_a")))), "include", "exclude")) |>
+  mutate(exclusions_incomplete_bfi_c =
+           ifelse(all(is.na(c_across(starts_with("bfi_c")))) | all(!is.na(c_across(starts_with("bfi_c")))), "include", "exclude")) |>
+  mutate(exclusions_incomplete_bfi_e =
+           ifelse(all(is.na(c_across(starts_with("bfi_e")))) | all(!is.na(c_across(starts_with("bfi_e")))), "include", "exclude")) |>
+  mutate(exclusions_incomplete_bfi_n =
+           ifelse(all(is.na(c_across(starts_with("bfi_n")))) | all(!is.na(c_across(starts_with("bfi_n")))), "include", "exclude")) |>
+  mutate(exclusions_incomplete_bfi_o =
+           ifelse(all(is.na(c_across(starts_with("bfi_o")))) | all(!is.na(c_across(starts_with("bfi_o")))), "include", "exclude"))
+```
+
+In order to identify the participants which should be excluded I coded different additional columns in my dataframe with the mutate() function. The first mutate is being used to identify scores which shouldn't be possible (e.g. scores beneath 1 or above 6). The other mutate function are being used to identify those participants who started a bfi subclass but didn't answer all items. I programmed an exclusion column for each participant. The code can be translated in words like this: If rowwise everything isn't answered for an specified subscale or if everything is answered in this subscale, set it to include, otherwise to exclude.
+
+Note: Just in the first line of my code I used the old pipe (%>%). I used this pipe because of the select(.,) which only works with the old pipe
+
+## Means BFI
+
+The following code calculates the mean of each subscale for each participant. Note that there are some NAs due to the fact that not every participant answered all bfi subscales. The calculated means are added in the dataframe with the mutate function.
+```{r}
+data_processed_reversed_scores_with_means <- data_processed_reversed_scores %>%
+  mutate(mean_bfi_a = rowMeans(select(., starts_with("bfi_a")), na.rm = TRUE),
+         mean_bfi_c = rowMeans(select(., starts_with("bfi_c")), na.rm = TRUE),
+         mean_bfi_e = rowMeans(select(., starts_with("bfi_e")), na.rm = TRUE),
+         mean_bfi_n = rowMeans(select(., starts_with("bfi_n")), na.rm = TRUE),
+         mean_bfi_o = rowMeans(select(., starts_with("bfi_o")), na.rm = TRUE))
+```
+
+Next I want to check if any of the calculated means does violate the minimal or maximal possible mean score for a specific subscale. 
+The min or max scores which are possible are 1 and 6 which means that the calculated means should be between 1 and 6. This is the case in my code. By sorting the mean_bfi_a, mean_bfi_c etc. columns I can see the highest and the lowest scores and I can see that the means do not violate the min or max scores which are possible. So i don't have to revise my scoring code.
+
+```{r}
+data_processed_bfi_ready_for_analysis <- full_join(data_processed_reversed_scores_with_means, data_processed_bfi_identifying_exclusions) |>
+  mutate(unique_id = as.character(unique_id))
+```
+
+# IAT
+
+```{r}
+data_processed_iat <- data_raw_iat |>
+  rename(unique_id = participant,
+         block_required_responses = x3,
+         trial_response = trial,
+         Trial_accuracy = x5,
+         Trial_reaction_time_in_ms = x6) |>
+  filter(block != "block number")
+
+data_processed_iat_without_practice_trials <- data_processed_iat |>
+  filter(block != "1",
+         block != "2",
+         block != "5")
+```
+
+## Greenwald's D IAT
+
+To calculate Greenwald's D you have to calculate: (mean1 - mean2)/SD. 
+
+- The mean1 consists of the Reaction Time from Block 3 and 6.
+- The mean2 consists of the Reaction Time from Block 4 and 7.
+- To calculate SD the Reaction Time from Block 3, 4, 6 and 7 are used.
+
+- Block 1, 2 and 5 are practice trials and are not included in the calculation of Greenwald's D.
+
+```{r}
+data_processed_iat_with_Greenwald_D <- data_processed_iat_without_practice_trials |>
+  group_by(unique_id) |>
+  mutate(Trial_reaction_time_in_ms = as.numeric(Trial_reaction_time_in_ms)) |>
+  mutate(mean1 = ifelse(block == 3 | block == 6, mean(Trial_reaction_time_in_ms[block %in% c(3, 6)], na.rm = TRUE), NA_real_),
+         mean2 = ifelse(block == 4 | block == 7, mean(Trial_reaction_time_in_ms[block %in% c(4, 7)], na.rm = TRUE), NA_real_)) |>
+    mutate(SD = ifelse(block %in% c(3, 4, 6, 7), sd(Trial_reaction_time_in_ms))) |>
+  mutate(iat_greenwald_d_score = (mean2[block %in% c(4, 7)] - mean1[block %in% c(3, 6)]) / SD)
+```
+with the group_by() function I make sure that the means, SD and Greenwald D are calculated for each participant (unique_id_iat). 
+
+By checking the highest and lowest scores I can do a sanity check of my code. The lowest Greenwald D shouldn't be below -2 and the highest Greenwald D shouldn't be above 2. My lowest score is -0.9486434 and my highest score is 0.3377239. This means there is no obvious mistake in my code.
+
+## Exclusions IAT
+
+Each participant should have a total trial number of 120. With the count() function I can see which participant don't fit this criteria.
+In a second step those participants will be set to "exclude".
+
+In addition I am going to add a new variable which defines the Performance of the IAT. 
+```{r}
+# Trial number
+count(data_processed_iat_with_Greenwald_D)
+
+data_processed_iat_identifying_exclusions <- data_processed_iat_with_Greenwald_D |>
+  count(unique_id) |>
+  mutate(exclusions_iat_trial_number = if_else(n == 120, "include", "exclude"))
+
+
+joined_data <- full_join(data_processed_iat_with_Greenwald_D, data_processed_iat_identifying_exclusions, by = "unique_id") 
+
+# IAT Performance
+data_processed_iat_identifying_exclusions_performance <- joined_data |>
+  mutate(performance_time = if_else(Trial_reaction_time_in_ms < 300, TRUE, FALSE)) |>
+  group_by(unique_id) |>
+  dplyr::summarize(
+    proportion_fast_trials_iat = mean(performance_time),
+    proportion_incorrect_trials = mean(Trial_accuracy == "incorrect")) |>
+  mutate(
+    exclusions_iat_performance = ifelse(proportion_fast_trials_iat > 0.10, "exclude", "include"),
+    exclusions_iat_accuracy = ifelse(proportion_incorrect_trials > 0.75, "exclude", "include"))
+
+check <- joined_data |>
+  count(Trial_accuracy)
+
+joined_data_exclusions <-  full_join(joined_data, data_processed_iat_identifying_exclusions_performance, by = "unique_id")
+```
+
+Regarded the performance criteria there is only one participant which is been set to exculde: 629563. No participant has an accuracy proportion of incorrect answers which are 75% or more.
+
+## Preparing IAT dataframe for Integration
+```{r}
+data_processed_iat_ready_for_analysis <- joined_data_exclusions |>
+  group_by(unique_id) |>
+  summarise(
+    across(where(is.numeric), mean, na.rm = TRUE),
+    across(where(is.character), first)) |>
+  select(-block, -block_required_responses, -trial_response, -Trial_accuracy) |>
+  mutate(unique_id = as.character(unique_id))
+```
+
+# Combining the dataframes
+
+In the following code section I am going to combine the demographics, the BFI and the IAT data into one data frame. Now I only want one row for each participant instead of multiple rows per participant. 
+
+```{r}
+# Join data_processed_bfi_ready_for_analysis and data_processed_iat_ready_for_analysis
+temp_join <- full_join(data_processed_bfi_ready_for_analysis, data_processed_iat_ready_for_analysis, by = "unique_id")
+
+# Inner join the result with data_raw_demographics_wide
+data_processing_combined <- inner_join(temp_join, data_raw_demographics_wide, by = "unique_id") |>
+  select(unique_id, age, gender, everything())
+```
+
+# Master Exclusion
+
+```{r}
+data_processing_combined_with_master_exclusions <- data_processing_combined |>
+  rowwise() |>
+  mutate(master_exclusion = ifelse(any(c_across(starts_with("exclu")) == "exclude"), "exclude", "include"))
+```
+
+# Codebook
+```{r}
+if(!file.exists("../data/processed/codebook__data_processed_bfi_iat_study.xlsx")){
+  # convert the column names to a df
+  codebook_template <- data.frame(variable = colnames(data_processed)) |>
+    mutate(explanation = NA)
+  # write to disk as an excel file
+  write.xlsx(codebook_template, file = "../data/processed/codebook__data_processed_bfi_iat_study.xlsx")
+}
+```
+
+# Write to disk
+
+```{r}
+
+# in case this dir doesn't exist, create it
+dir.create("../data/processed/")
+
+
+write_csv(data_processing_combined_with_master_exclusions, "../data/processed/data_processed_robine.csv")
+
+write.xlsx(codebook_template, file = "../data/processed/data_processed_codebook.xlsx")
+```
+
