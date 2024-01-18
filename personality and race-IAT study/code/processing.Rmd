@@ -211,6 +211,8 @@ data_processed_bfi_identifying_exclusions <- data_processed_reversed_scores %>%
 
 In order to identify the participants which should be excluded I coded different additional columns in my dataframe with the mutate() function. The first mutate is being used to identify scores which shouldn't be possible (e.g. scores beneath 1 or above 6). The other mutate function are being used to identify those participants who started a bfi subclass but didn't answer all items. I programmed an exclusion column for each participant. The code can be translated in words like this: If rowwise everything isn't answered for an specified subscale or if everything is answered in this subscale, set it to include, otherwise to exclude.
 
+Note: The original BFI-44 only has possible scores from 1-5 (not from 1-6).
+
 Note: Just in the first line of my code I used the old pipe (%>%). I used this pipe because of the select(.,) which only works with the old pipe
 
 ## Means BFI
