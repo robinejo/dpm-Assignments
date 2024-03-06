@@ -272,6 +272,8 @@ combined_plots_bad
 
 
 ```
+Well first of all what really makes a plot bad, is a wrong plot or a plot which is so overcrowded that you can see nothing at all. But I didn't make such a plot. Rather I made a simple plot and choose colors which are not so well detectable. 
+
 
 # Good plot
 
@@ -312,7 +314,7 @@ plot_neuroticism <- ggplot(data_dnd_after_exclusions_dnd_players_gender , aes(x 
   facet_wrap(~ gender) +
   labs(title = "Neuroticism")
 
-# Good Plot forOpenness
+# Good Plot for Openness
 plot_openness <- ggplot(data_dnd_after_exclusions_dnd_players_gender , aes(x = dnd_player, y = mean_open_new, fill = gender)) +
   geom_flat_violin(position = position_nudge(x = 0.2), alpha = 0.7) +
   geom_point(position = position_jitterdodge(jitter.width = 0.2, dodge.width = 0.6), linewidth = 0.5, alpha = 0.7) +
@@ -330,6 +332,7 @@ combined_plots_good <- combined_plots_good + plot_layout(guides = "collect")
 # Display the combined plots
 combined_plots_good
 ```
+In this plots you can see the distribution of means for each of the bfi-44 scores (big 5). Here I added the distinction between the identified sexes of the participants and added a violin plot to get a better view of the distribution of the different results. I like it when different colors are used in plots to mark different things. But also this plot could be improved, because due to the fact that more information are given, the final plot/image is rather stuffed. Maybe it would have been also useful to see the results of each mean, so you can specifically compare numbers rather than just guessing them. 
 
 # Write to disk
 Write to disk as a .pdf or .png.
